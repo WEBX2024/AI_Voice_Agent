@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Environment Variables
+.env
+.env.example
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Generated Audio
+audio_output/
+*.wav
+*.mp3
+*.ogg
+*.flac
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Data (will be provided later)
+data/*.json
+data/*.xlsx
+data/*.csv
+!data/.gitkeep
+
+# Node (for future frontend)
+node_modules/
+
+# Call recordings/summaries (runtime generated)
+data/calls/
