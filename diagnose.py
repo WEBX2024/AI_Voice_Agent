@@ -3,12 +3,11 @@ Diagnostic script to test each component of the voice agent pipeline.
 Tests: Microphone → STT → LLM → TTS → Speaker
 """
 import asyncio
+import base64
+import json
 import os
 import sys
 import time
-import base64
-import json
-import struct
 
 # Ensure UTF-8 output on Windows terminals
 if sys.platform == "win32":
@@ -16,6 +15,7 @@ if sys.platform == "win32":
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # ── Test 1: Microphone capture ──────────────────────────────────────
@@ -24,8 +24,8 @@ def test_microphone():
     print("TEST 1: Microphone Capture (3 seconds)")
     print("=" * 60)
     try:
-        import sounddevice as sd
         import numpy as np
+        import sounddevice as sd
 
         sample_rate = 16000
         duration = 3  # seconds
@@ -48,7 +48,7 @@ def test_microphone():
             print("  ✅ Audio has speech-level energy.")
 
         return audio_bytes
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ FAILED: {e}")
         return None
 
@@ -58,9 +58,10 @@ async def test_stt_rest(audio_bytes):
     print("\n" + "=" * 60)
     print("TEST 2: Sarvam STT (REST one-shot)")
     print("=" * 60)
-    import aiohttp
     import io
     import wave
+
+    import aiohttp
 
     api_key = os.getenv("SARVAM_API_KEY")
     if not api_key:
@@ -83,25 +84,24 @@ async def test_stt_rest(audio_bytes):
     form_data.add_field("language_code", "en-IN")
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.sarvam.ai/speech-to-text",
-                headers=headers, data=form_data
-            ) as resp:
-                status = resp.status
-                body = await resp.text()
-                print(f"  Status: {status}")
-                if status == 200:
-                    result = json.loads(body)
-                    transcript = result.get("transcript", "")
-                    print(f"  ✅ Transcript: \"{transcript}\"")
-                    if not transcript:
-                        print("  ⚠️  WARNING: Empty transcript — STT returned nothing.")
-                    return transcript
-                else:
-                    print(f"  ❌ Error: {body[:500]}")
-                    return None
-    except Exception as e:
+        async with aiohttp.ClientSession() as session, session.post(
+            "https://api.sarvam.ai/speech-to-text",
+            headers=headers, data=form_data
+        ) as resp:
+            status = resp.status
+            body = await resp.text()
+            print(f"  Status: {status}")
+            if status == 200:
+                result = json.loads(body)
+                transcript = result.get("transcript", "")
+                print(f"  ✅ Transcript: \"{transcript}\"")
+                if not transcript:
+                    print("  ⚠️  WARNING: Empty transcript — STT returned nothing.")
+                return transcript
+            else:
+                print(f"  ❌ Error: {body[:500]}")
+                return None
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ FAILED: {e}")
         return None
 
@@ -123,7 +123,7 @@ async def test_stt_websocket(audio_bytes):
     try:
         async with aiohttp.ClientSession() as session:
             ws = await session.ws_connect(url, headers=headers)
-            print(f"  ✅ WebSocket connected")
+            print("  ✅ WebSocket connected")
 
             # Send audio in chunks (simulate streaming)
             chunk_size = 3200  # 200ms of 16kHz 16-bit mono
@@ -182,7 +182,7 @@ async def test_stt_websocket(audio_bytes):
                 print("  The _listen() loop will never accumulate text → agent never replies.")
                 return None
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ FAILED: {e}")
         import traceback
         traceback.print_exc()
@@ -220,7 +220,7 @@ def test_llm(user_text):
         response = completion.choices[0].message.content
         print(f"  ✅ Response ({elapsed:.2f}s): \"{response}\"")
         return response
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ FAILED: {e}")
         return None
 
@@ -280,7 +280,7 @@ async def test_tts(text):
                     error = await resp.text()
                     print(f"  ❌ Error: {error[:500]}")
                     return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ FAILED: {e}")
         return None
 
@@ -291,8 +291,8 @@ def test_playback(pcm_data):
     print("TEST 5: Speaker Playback")
     print("=" * 60)
     try:
-        import sounddevice as sd
         import numpy as np
+        import sounddevice as sd
 
         audio_array = np.frombuffer(pcm_data, dtype=np.int16)
         audio_array = audio_array.reshape(-1, 1)
@@ -301,7 +301,7 @@ def test_playback(pcm_data):
         sd.play(audio_array, samplerate=16000)
         sd.wait()
         print("  ✅ Playback complete")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ FAILED: {e}")
 
 

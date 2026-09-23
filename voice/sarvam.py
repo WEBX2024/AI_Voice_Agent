@@ -9,6 +9,7 @@ import asyncio
 import base64
 import json
 import logging
+
 import aiohttp
 
 from agent.config import Config
@@ -100,7 +101,7 @@ class SarvamSTT:
 
         except asyncio.TimeoutError:
             return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("STT receive error: %s", e)
             return None
 
@@ -131,17 +132,16 @@ class SarvamSTT:
         form_data.add_field("model", self.model.replace("-realtime", ""))
         form_data.add_field("language_code", self.language_code)
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                SARVAM_STT_REST_URL, headers=headers, data=form_data
-            ) as resp:
-                if resp.status == 200:
-                    result = await resp.json()
-                    return result.get("transcript", "")
-                else:
-                    error = await resp.text()
-                    logger.error("Sarvam STT REST error %d: %s", resp.status, error)
-                    return ""
+        async with aiohttp.ClientSession() as session, session.post(
+            SARVAM_STT_REST_URL, headers=headers, data=form_data
+        ) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                return result.get("transcript", "")
+            else:
+                error = await resp.text()
+                logger.error("Sarvam STT REST error %d: %s", resp.status, error)
+                return ""
 
 
 class SarvamTTS:
@@ -177,10 +177,9 @@ class SarvamTTS:
             "speech_sample_rate": self.config.audio_sample_rate,
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                SARVAM_TTS_REST_URL, headers=headers, json=payload
-            ) as resp:
+        async with aiohttp.ClientSession() as session, session.post(
+            SARVAM_TTS_REST_URL, headers=headers, json=payload
+        ) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     audios = result.get("audios", [])
@@ -198,4 +197,3 @@ class SarvamTTS:
 
     async def close(self):
         """Close the TTS resources."""
-        pass

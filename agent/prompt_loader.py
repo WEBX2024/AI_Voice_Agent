@@ -20,7 +20,7 @@ def load_prompt_file(filepath: Path) -> str:
     except FileNotFoundError:
         logger.warning("Prompt file not found: %s", filepath)
         return ""
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Error loading prompt %s: %s", filepath, e)
         return ""
 

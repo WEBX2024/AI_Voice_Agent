@@ -41,7 +41,7 @@ class JSONStore:
             with open(filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data if isinstance(data, list) else [data]
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             logger.error("Error reading %s: %s", filepath, e)
             return []
 
@@ -52,7 +52,7 @@ class JSONStore:
             with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(records, f, indent=2, ensure_ascii=False)
             logger.debug("Wrote %d records to %s", len(records), collection)
-        except IOError as e:
+        except OSError as e:
             logger.error("Error writing %s: %s", filepath, e)
 
     def append(self, collection: str, record: dict[str, Any]):

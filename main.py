@@ -76,8 +76,8 @@ def main():
         asyncio.run(runtime.start())
     except KeyboardInterrupt:
         print("\n\nGoodbye! 👋")
-    except Exception as e:
-        logger.error("Fatal error: %s", e, exc_info=True)
+    except Exception:
+        logger.exception("Fatal error occurred")
         sys.exit(1)
 
 

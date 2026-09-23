@@ -6,10 +6,11 @@ Processes microphone audio chunks to:
 2. Estimate audio metrics (VAD, SNR, speech quality).
 """
 
-import math
 import logging
-import numpy as np
+import math
+
 import noisereduce as nr
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ class AudioEnhancer:
                 )
             else:
                 reduced_audio = audio_array
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.debug("Noise reduction failed on chunk: %s", e)
             reduced_audio = audio_array
             

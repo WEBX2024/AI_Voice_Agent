@@ -8,17 +8,16 @@ Handles the streaming pipeline, turn management, and interruption detection.
 """
 
 import asyncio
-import logging
 import json
+import logging
 import time
-from pathlib import Path
 
-from agent.config import Config
 from agent.agent import VoiceAgent
-from voice.stream import AudioStream
-from voice.sarvam import SarvamSTT, SarvamTTS
+from agent.config import Config
 from voice.deepgram import DeepgramSTT, DeepgramTTS
 from voice.enhancement import AudioEnhancer
+from voice.sarvam import SarvamSTT, SarvamTTS
+from voice.stream import AudioStream
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +79,7 @@ class VoiceRuntime:
             try:
                 await self.tts.connect()
                 logger.info("TTS provider connected (%s)", self.config.tts_provider)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("TTS streaming connect failed, will use REST fallback: %s", e)
 
         self._running = True
@@ -103,7 +102,7 @@ class VoiceRuntime:
         print(f"🤖 Agent: {greeting}")
         try:
             await self._speak(greeting)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Failed to speak greeting: %s", e)
 
     async def _main_loop(self):
@@ -135,7 +134,7 @@ class VoiceRuntime:
 
             except asyncio.CancelledError:
                 break
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error("Main loop error: %s", e)
                 await asyncio.sleep(0.5)
 
@@ -166,7 +165,7 @@ class VoiceRuntime:
                         await self.stt.send_audio(clean_chunk)
                 except asyncio.CancelledError:
                     break
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.error("STT send error: %s", e)
                 await asyncio.sleep(0.01)
 
@@ -194,7 +193,7 @@ class VoiceRuntime:
                             logger.debug("Interim: %s", text)
                 except asyncio.CancelledError:
                     break
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001
                     logger.error("STT receive error: %s", e)
                     await asyncio.sleep(0.1)
 
@@ -229,7 +228,7 @@ class VoiceRuntime:
 
         return result, latest_metrics
 
-    async def _think_and_speak(self, user_text: str, audio_metrics: dict = None) -> str:
+    async def _think_and_speak(self, user_text: str, audio_metrics: dict | None = None) -> str:
         """
         Stream the LLM response, chunk it into sentences, and speak them sequentially.
         Returns the final conversation state.
@@ -249,7 +248,7 @@ class VoiceRuntime:
 
         stream = await asyncio.get_event_loop().run_in_executor(None, _get_stream)
 
-        print(f"🤖 Agent: ", end="", flush=True)
+        print("🤖 Agent: ", end="", flush=True)
 
         # Iterate over the sync generator without blocking the async event loop
         while True:
@@ -312,7 +311,7 @@ class VoiceRuntime:
             else:
                 logger.warning("TTS returned empty audio")
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("TTS/playback error: %s", e)
         finally:
             self._is_speaking = False
@@ -334,10 +333,10 @@ class VoiceRuntime:
             summary_file = summary_dir / f"call_{timestamp}.json"
 
             try:
-                with open(summary_file, "w", encoding="utf-8") as f:
+                with open(summary_file, "w", encoding="utf-8") as f:  # noqa: ASYNC230
                     json.dump(summary, f, indent=2, ensure_ascii=False)
                 print(f"   Summary saved to: {summary_file}")
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error("Failed to save summary: %s", e)
 
             # Print summary

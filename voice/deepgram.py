@@ -6,9 +6,9 @@ and the REST API for TTS. This avoids tight coupling to SDK version changes.
 """
 
 import asyncio
-import base64
 import json
 import logging
+
 import aiohttp
 
 from agent.config import Config
@@ -102,7 +102,7 @@ class DeepgramSTT:
 
         except asyncio.TimeoutError:
             return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Deepgram STT receive error: %s", e)
             return None
 
@@ -112,7 +112,7 @@ class DeepgramSTT:
             # Send close message
             try:
                 await self._ws.send_json({"type": "CloseStream"})
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
             await self._ws.close()
             self._ws = None
@@ -156,8 +156,7 @@ class DeepgramTTS:
         payload = {"text": text}
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, json=payload) as resp:
+            async with aiohttp.ClientSession() as session, session.post(url, headers=headers, json=payload) as resp:
                     if resp.status == 200:
                         audio_data = await resp.read()
                         logger.debug("Deepgram TTS: synthesized %d bytes", len(audio_data))
@@ -166,7 +165,7 @@ class DeepgramTTS:
                         error = await resp.text()
                         logger.error("Deepgram TTS error %d: %s", resp.status, error)
                         return b""
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Deepgram TTS request failed: %s", e)
             return b""
 
@@ -184,8 +183,7 @@ class DeepgramTTS:
         headers = {"Authorization": f"Token {self.api_key}"}
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.ws_connect(url, headers=headers) as ws:
+            async with aiohttp.ClientSession() as session, session.ws_connect(url, headers=headers) as ws:
                     await ws.send_json({"type": "Speak", "text": text})
                     await ws.send_json({"type": "Flush"})
 
@@ -201,9 +199,8 @@ class DeepgramTTS:
                             aiohttp.WSMsgType.ERROR,
                         ):
                             break
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Deepgram TTS streaming error: %s", e)
 
     async def close(self):
         """No persistent connection to close for REST-based TTS."""
-        pass

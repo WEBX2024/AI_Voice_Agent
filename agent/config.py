@@ -5,9 +5,10 @@ Reads environment variables from .env and exposes typed configuration
 for all components (API keys, provider selection, audio settings).
 """
 
-import os
 import logging
+import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)

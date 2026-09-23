@@ -6,8 +6,9 @@ Provides async-friendly interfaces via callbacks and queues.
 """
 
 import logging
-import threading
 import queue
+import threading
+
 import numpy as np
 import sounddevice as sd
 
@@ -185,7 +186,7 @@ class AudioStream:
 
             except queue.Empty:
                 continue
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 if self._playing:
                     logger.error("Playback error: %s", e)
                 break

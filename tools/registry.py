@@ -9,7 +9,8 @@ The agent uses the tool selection prompt to decide when to invoke tools.
 """
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class ToolRegistry:
             result = tool["func"](**kwargs)
             logger.info("Tool %s executed successfully", name)
             return result
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Tool %s failed: %s", name, e)
             return {"error": str(e)}
 

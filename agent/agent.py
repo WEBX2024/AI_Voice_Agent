@@ -9,10 +9,11 @@ the prompts/ directory, not by Python conditionals.
 import json
 import logging
 import time
+
 from groq import Groq
 
 from agent.config import Config
-from agent.prompt_loader import load_prompts_from_directory, assemble_system_prompt
+from agent.prompt_loader import assemble_system_prompt, load_prompts_from_directory
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class VoiceAgent:
         self.turn_count = 0
         logger.info("Conversation reset")
 
-    def _build_messages(self, user_text: str, audio_metrics: dict = None) -> list[dict[str, str]]:
+    def _build_messages(self, user_text: str, audio_metrics: dict | None = None) -> list[dict[str, str]]:
         """Build the full message list for the LLM call."""
         messages = [{"role": "system", "content": self.system_prompt}]
         messages.extend(self.history)
@@ -72,7 +73,7 @@ class VoiceAgent:
         messages.append({"role": "user", "content": content})
         return messages
 
-    def process_turn(self, user_text: str, audio_metrics: dict = None) -> str:
+    def process_turn(self, user_text: str, audio_metrics: dict | None = None) -> str:
         """
         Process a single conversational turn (non-streaming).
 
@@ -107,14 +108,14 @@ class VoiceAgent:
                 logger.info("Turn %d — Agent: %s", self.turn_count, agent_reply[:100])
                 return agent_reply
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("LLM error with model %s on turn %d: %s", model, self.turn_count, e)
                 continue
 
         logger.error("All LLM models failed on turn %d", self.turn_count)
         return "I'm sorry, I'm having a technical issue right now. Could you repeat that?"
 
-    def process_turn_streaming(self, user_text: str, audio_metrics: dict = None):
+    def process_turn_streaming(self, user_text: str, audio_metrics: dict | None = None):
         """
         Process a turn with streaming. Yields text chunks as they arrive.
         Handles structured JSON extraction on the fly.
@@ -172,7 +173,7 @@ class VoiceAgent:
             parsed = self._parse_json_response(full_response)
             yield ("done", parsed)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("LLM streaming error on turn %d: %s", self.turn_count, e)
             yield ("text", "I'm sorry, I'm having a technical issue. Could you repeat that?")
             yield ("done", {})
@@ -207,7 +208,7 @@ class VoiceAgent:
             # Try to extract JSON from the response
             return self._parse_json_response(raw)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Failed to generate call summary: %s", e)
             return {"error": str(e)}
 
@@ -224,8 +225,7 @@ class VoiceAgent:
             cleaned = cleaned[7:]
         elif cleaned.startswith("```"):
             cleaned = cleaned[3:]
-        if cleaned.endswith("```"):
-            cleaned = cleaned[:-3]
+        cleaned = cleaned.removesuffix("```")
         cleaned = cleaned.strip()
 
         try:
@@ -245,8 +245,7 @@ class VoiceAgent:
             cleaned = cleaned[7:]
         elif cleaned.startswith("```"):
             cleaned = cleaned[3:]
-        if cleaned.endswith("```"):
-            cleaned = cleaned[:-3]
+        cleaned = cleaned.removesuffix("```")
         cleaned = cleaned.strip()
 
         try:
