@@ -9,8 +9,13 @@ import asyncio
 import base64
 import json
 import logging
+import io
+import wave
+import math
 
 import aiohttp
+import numpy as np
+from scipy import signal
 
 from agent.config import Config
 
@@ -185,9 +190,26 @@ class SarvamTTS:
                     audios = result.get("audios", [])
                     if audios and len(audios) > 0:
                         audio_data = base64.b64decode(audios[0])
-                        # If it's a WAV file, strip the 44-byte RIFF header so we get raw PCM
+                        # Safely parse WAV header and resample if needed
                         if audio_data.startswith(b"RIFF"):
-                            audio_data = audio_data[44:]
+                            with io.BytesIO(audio_data) as wav_io:
+                                with wave.open(wav_io, 'rb') as w:
+                                    framerate = w.getframerate()
+                                    frames = w.readframes(w.getnframes())
+                                    
+                                    # Convert to numpy array
+                                    audio_array = np.frombuffer(frames, dtype=np.int16)
+                                    
+                                    # Resample if needed
+                                    if framerate != self.config.audio_sample_rate:
+                                        # Use polyphase filtering for fast high-quality resampling
+                                        gcd = math.gcd(self.config.audio_sample_rate, framerate)
+                                        up = self.config.audio_sample_rate // gcd
+                                        down = framerate // gcd
+                                        resampled = signal.resample_poly(audio_array, up, down)
+                                        audio_array = resampled.astype(np.int16)
+                                        
+                                    audio_data = audio_array.tobytes()
                         return audio_data
                     return b""
                 else:

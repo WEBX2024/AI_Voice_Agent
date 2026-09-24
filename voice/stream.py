@@ -49,14 +49,19 @@ class AudioStream:
 
         # Interruption support
         self._interrupted = threading.Event()
+        self.is_speaking_active = False
 
     def _input_callback(self, indata, frames, time_info, status):
         """Callback for the input stream — called by sounddevice."""
         if status:
             logger.warning("Audio input status: %s", status)
         if self._recording:
-            # Convert numpy array to raw bytes
-            self.input_queue.put(bytes(indata))
+            # Simple software echo cancellation: mute mic while speaking
+            if self.is_speaking_active:
+                silence = np.zeros_like(indata)
+                self.input_queue.put(bytes(silence))
+            else:
+                self.input_queue.put(bytes(indata))
 
     def start(self):
         """Initialize and open input/output streams."""
@@ -182,7 +187,9 @@ class AudioStream:
                 else:
                     audio_array = audio_array.reshape(-1, self.channels)
 
+                self.is_speaking_active = True
                 self._output_stream.write(audio_array)
+                self.is_speaking_active = False
 
             except queue.Empty:
                 continue

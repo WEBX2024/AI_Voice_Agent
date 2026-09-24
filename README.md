@@ -294,5 +294,6 @@ The architecture supports adding a telephony layer without redesigning the agent
 | STT returns empty transcripts | Verify API key, check network, try Deepgram fallback |
 | High latency responses | Check network latency to provider APIs, try Deepgram |
 | `ModuleNotFoundError` | Ensure venv is activated and deps installed |
-#   A I _ V o i c e _ A g e n t  
+#   A I _ V o i c e _ A g e n t 
+ 
  

@@ -22,7 +22,7 @@ from voice.stream import AudioStream
 logger = logging.getLogger(__name__)
 
 # Silence threshold (seconds) — how long silence = user done speaking
-SILENCE_THRESHOLD = 0.7
+SILENCE_THRESHOLD = 2.0
 # Maximum seconds to wait for speech before prompting
 MAX_SILENCE = 15.0
 
