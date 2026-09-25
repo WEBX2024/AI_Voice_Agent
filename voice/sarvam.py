@@ -7,11 +7,11 @@ and text-to-speech. Falls back to REST API where streaming is not feasible.
 
 import asyncio
 import base64
+import io
 import json
 import logging
-import io
-import wave
 import math
+import wave
 
 import aiohttp
 import numpy as np
@@ -192,24 +192,23 @@ class SarvamTTS:
                         audio_data = base64.b64decode(audios[0])
                         # Safely parse WAV header and resample if needed
                         if audio_data.startswith(b"RIFF"):
-                            with io.BytesIO(audio_data) as wav_io:
-                                with wave.open(wav_io, 'rb') as w:
-                                    framerate = w.getframerate()
-                                    frames = w.readframes(w.getnframes())
-                                    
-                                    # Convert to numpy array
-                                    audio_array = np.frombuffer(frames, dtype=np.int16)
-                                    
-                                    # Resample if needed
-                                    if framerate != self.config.audio_sample_rate:
-                                        # Use polyphase filtering for fast high-quality resampling
-                                        gcd = math.gcd(self.config.audio_sample_rate, framerate)
-                                        up = self.config.audio_sample_rate // gcd
-                                        down = framerate // gcd
-                                        resampled = signal.resample_poly(audio_array, up, down)
-                                        audio_array = resampled.astype(np.int16)
-                                        
-                                    audio_data = audio_array.tobytes()
+                            with io.BytesIO(audio_data) as wav_io, wave.open(wav_io, 'rb') as w:
+                                framerate = w.getframerate()
+                                frames = w.readframes(w.getnframes())
+
+                                # Convert to numpy array
+                                audio_array = np.frombuffer(frames, dtype=np.int16)
+
+                                # Resample if needed
+                                if framerate != self.config.audio_sample_rate:
+                                    # Use polyphase filtering for fast high-quality resampling
+                                    gcd = math.gcd(self.config.audio_sample_rate, framerate)
+                                    up = self.config.audio_sample_rate // gcd
+                                    down = framerate // gcd
+                                    resampled = signal.resample_poly(audio_array, up, down)
+                                    audio_array = resampled.astype(np.int16)
+
+                                audio_data = audio_array.tobytes()
                         return audio_data
                     return b""
                 else:

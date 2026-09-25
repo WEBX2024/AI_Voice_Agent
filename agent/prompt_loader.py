@@ -35,6 +35,6 @@ def load_system_prompt(prompts_dir: Path) -> str:
     except FileNotFoundError:
         logger.warning("System prompt file not found: %s", system_prompt_path)
         return ""
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.error("Error loading system prompt %s: %s", system_prompt_path, e)
         return ""

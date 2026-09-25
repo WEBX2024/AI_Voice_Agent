@@ -146,6 +146,15 @@ class VoiceRuntime:
         tasks so that audio keeps flowing to the STT while we wait for
         transcripts. Accumulates transcript until the user stops speaking.
         """
+        # Flush any pending transcripts from previous turn to avoid echoing
+        while True:
+            try:
+                res = await asyncio.wait_for(self.stt.receive_transcript(), timeout=0.05)
+                if not res:
+                    break
+            except Exception:  # noqa: BLE001
+                break
+
         accumulated_text = ""
         partial_text = ""  # Latest partial (interim) transcript
         last_speech_time = time.time()
@@ -230,7 +239,7 @@ class VoiceRuntime:
 
     async def _think_and_speak(self, user_text: str, audio_metrics: dict | None = None) -> str:
         """
-        Stream the LLM response, chunk it into sentences, and speak them sequentially.
+        Stream the LLM response, chunk it into sentences, and queue them for playback.
         Returns the final conversation state.
         """
         import re
@@ -241,6 +250,20 @@ class VoiceRuntime:
         spoken_sentences = 0
         state = "active"
         full_response = ""
+
+        speak_queue = asyncio.Queue()
+
+        async def _playback_worker():
+            """Background worker to play sentences sequentially without blocking LLM."""
+            while True:
+                text = await speak_queue.get()
+                if text is None:  # Sentinel value to exit
+                    speak_queue.task_done()
+                    break
+                await self._speak(text)
+                speak_queue.task_done()
+
+        playback_task = asyncio.create_task(_playback_worker())
 
         # Run generator in an async wrapper since the underlying client is sync
         def _get_stream():
@@ -266,25 +289,37 @@ class VoiceRuntime:
                 current_sentence += content
                 full_response += content
 
-                # Split on sentence boundaries (., !, ?)
-                # Also split if it gets too long without punctuation
-                if re.search(r'[.!?]\s', current_sentence) or len(current_sentence) > 100:
-                    sentence_to_speak = current_sentence.strip()
+                # Split on sentence boundaries (., !, ?) or newlines
+                match = re.search(r'([.!?]\s|\n)', current_sentence)
+                if match:
+                    split_idx = match.end()
+                    sentence_to_speak = current_sentence[:split_idx].strip()
                     if sentence_to_speak:
-                        # For first sentence, don't wait. For subsequent ones, we await speak
-                        # (A full queueing system is better, but awaiting sequential sentences is a safe v1 pipeline)
-                        await self._speak(sentence_to_speak)
+                        await speak_queue.put(sentence_to_speak)
                         spoken_sentences += 1
-                    current_sentence = ""
+                    current_sentence = current_sentence[split_idx:]
+                elif len(current_sentence) > 200:
+                    # Fallback if no punctuation is found for a long time, try to find a comma
+                    comma_match = re.search(r'(,\s)', current_sentence)
+                    if comma_match:
+                        split_idx = comma_match.end()
+                        sentence_to_speak = current_sentence[:split_idx].strip()
+                        if sentence_to_speak:
+                            await speak_queue.put(sentence_to_speak)
+                            spoken_sentences += 1
+                        current_sentence = current_sentence[split_idx:]
                     
             elif item_type == "done":
                 # Flush remaining text
                 if current_sentence.strip():
-                    await self._speak(current_sentence.strip())
+                    await speak_queue.put(current_sentence.strip())
                     
                 if isinstance(content, dict):
                     state = content.get("conversation_state", "active")
-                    
+
+        # Wait for all queued sentences to finish playing
+        await speak_queue.put(None)
+        await playback_task
         print() # Newline after full agent response
         return state
 

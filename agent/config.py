@@ -37,8 +37,8 @@ class Config:
         self.stt_provider: str = os.getenv("STT_PROVIDER", "sarvam").lower()
         self.tts_provider: str = os.getenv("TTS_PROVIDER", "sarvam").lower()
 
-        self.llm_primary_model: str = os.getenv("LLM_PRIMARY_MODEL", "openai/gpt-oss-120b")
-        self.llm_fallback_model: str = os.getenv("LLM_FALLBACK_MODEL", "qwen/qwen3.6-27b")
+        self.llm_primary_model: str = os.getenv("LLM_PRIMARY_MODEL", "llama-3.1-70b-versatile")
+        self.llm_fallback_model: str = os.getenv("LLM_FALLBACK_MODEL", "llama-3.1-8b-instant")
 
         # --- Sarvam ---
         self.sarvam_stt_model: str = os.getenv("SARVAM_STT_MODEL", "saaras:v4-realtime")

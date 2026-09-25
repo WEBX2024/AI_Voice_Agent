@@ -13,7 +13,7 @@ import time
 from groq import Groq
 
 from agent.config import Config
-from agent.prompt_loader import load_system_prompt
+from agent.prompt_loader import assemble_system_prompt, load_prompts_from_directory
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,14 @@ class VoiceAgent:
         self.primary_model = config.llm_primary_model
         self.fallback_model = config.llm_fallback_model
 
-        # Load system prompt
-        self.system_prompt = load_system_prompt(config.prompts_dir)
+        # Load and assemble prompts
+        raw_prompts = load_prompts_from_directory(config.prompts_dir)
+        self.system_prompt = assemble_system_prompt(raw_prompts)
+        logger.info(
+            "System prompt assembled: %d characters from %d prompt files",
+            len(self.system_prompt),
+            len(raw_prompts),
+        )
 
         # Conversation history: list of {"role": ..., "content": ...}
         self.history: list[dict[str, str]] = []
